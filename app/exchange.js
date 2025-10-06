@@ -77,7 +77,7 @@ export async function exchange(exchangeRequest) {
     obs: null,
   };
 
-  //check if we have funds on the counter currency account
+  //check if we have funds on the counter currency account  // DEBERIA TENER TODA UNA UNIFICACION DE TRANSACCION
   if (counterAccount.balance >= counterAmount) {
     //try to transfer from clients' base account
     if (await transfer(clientBaseAccountId, baseAccount.id, baseAmount)) {
