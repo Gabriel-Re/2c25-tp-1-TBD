@@ -1,0 +1,54 @@
+config:
+  environments:
+    api:
+      target: "http://localhost:5555"
+      plugins:
+        statsd:
+          host: "localhost"
+          port: 8125
+          prefix: "artillery-api"
+
+  pool: 20  # menos hilos abiertos
+
+  phases:
+    - name: Warmup
+      duration: 60
+      arrivalRate: 10
+
+    - name: Moderate
+      duration: 90
+      arrivalRate: 50
+
+    - name: Peak
+      duration: 60
+      arrivalRate: 150
+
+    - name: Cooldown
+      duration: 60
+      arrivalRate: 20
+
+
+scenarios:
+  - name: Exchange (ARS->USD)
+    weight: 70
+    flow:
+      - post:
+          url: "/exchange"
+          json:
+            baseCurrency: "ARS"
+            counterCurrency: "USD"
+            baseAccountId: 1
+            counterAccountId: 2
+            baseAmount: 1000
+
+  - name: Rates
+    weight: 20
+    flow:
+      - get:
+          url: "/rates"
+
+  - name: Log
+    weight: 10
+    flow:
+      - get:
+          url: "/log"
