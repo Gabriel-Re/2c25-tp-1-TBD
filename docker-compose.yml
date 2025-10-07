@@ -48,6 +48,17 @@ services:
     rabbitmq:
         image: rabbitmq:3-management
 
+    exchange:
+      build: ./exchange-service
+      depends_on:
+          - rabbitmq
+          - redis
+      environment:
+          - RABBIT_USER=guest
+          - RABBIT_PASS=guest
+          - RABBIT_HOST=rabbitmq
+          - RABBIT_PORT=5672
+
 volumes:
     grafana_config:
         driver: local
