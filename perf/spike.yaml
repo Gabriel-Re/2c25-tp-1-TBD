@@ -8,44 +8,42 @@ config:
           port: 8125
           prefix: "artillery-api"
 
-  # Reutiliza conexiones TCP del host (Artillery corre fuera de Docker)
-  pool: 50
+  pool: 20
 
   phases:
-    - name: Warmup
-      duration: 90         # ~1.5 min
-      arrivalRate: 20      # 20 req/s
-    - name: Spike
-      duration: 150        # ~2.5 min
-      arrivalRate: 160     # salto brusco al pico
-    - name: Cooldown
+    - name: Baseline
+      duration: 60
+      arrivalRate: 10
+
+    - name: Spike_500
+      duration: 20
+      arrivalRate: 500
+
+    - name: Recovery
       duration: 90
-      arrivalRate: 20
+      arrivalRate: 10
 
 scenarios:
-  # 80% de las requests simulan la “corrida” (ARS→USD)
   - name: Exchange (ARS->USD)
-    weight: 80
+    weight: 70
     flow:
       - post:
           url: "/exchange"
           json:
             baseCurrency: "ARS"
             counterCurrency: "USD"
-            baseAccountId: 1        # cuenta interna ARS
-            counterAccountId: 2     # cuenta interna USD
-            baseAmount: 100000      # monto en ARS
+            baseAccountId: 1
+            counterAccountId: 2
+            baseAmount: 1000
 
-  # 15% refrescan cotizaciones
   - name: Rates
-    weight: 15
+    weight: 20
     flow:
       - get:
           url: "/rates"
 
-  # 5% consultan operaciones recientes
   - name: Log
-    weight: 5
+    weight: 10
     flow:
       - get:
           url: "/log"
