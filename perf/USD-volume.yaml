@@ -1,0 +1,56 @@
+# perf/usd-volume.basic.yaml
+config:
+  environments:
+    api:
+      target: "http://localhost:5555"
+      plugins:
+        statsd:
+          host: "localhost"   # si corres Artillery en el host; si lo corres en Docker, poné "graphite"
+          port: 8125
+          prefix: "artillery-api"
+
+  pool: 20
+
+  phases:
+    - name: Warmup
+      duration: 60
+      arrivalRate: 10
+    - name: Moderate
+      duration: 90
+      arrivalRate: 50
+    - name: Peak
+      duration: 60
+      arrivalRate: 150
+    - name: Cooldown
+      duration: 60
+      arrivalRate: 20
+
+scenarios:
+  - name: Exchange ARS->USD
+    weight: 70
+    flow:
+      - post:
+          url: "/exchange"
+          json:
+            baseCurrency: "ARS"
+            counterCurrency: "USD"
+            baseAccountId: 1
+            counterAccountId: 2
+            baseAmount: 1000   # fija para mantener sencillo
+          expect:
+            - statusCode: 200
+
+  - name: Exchange USD->ARS
+    weight: 30
+    flow:
+      - post:
+          url: "/exchange"
+          json:
+            baseCurrency: "USD"
+            counterCurrency: "ARS"
+            baseAccountId: 1
+            counterAccountId: 2
+            baseAmount: 5      # pequeña para generar volumen desde el lado USD base
+          expect:
+            - statusCode: 200
+
