@@ -1,10 +1,13 @@
 import { nanoid } from "nanoid";
+import { connect as amqpConnect } from "amqp-connection-manager";
 
 import { init as stateInit, getAccounts as stateAccounts, getRates as stateRates, getLog as stateLog } from "./state.js";
 
 let accounts;
 let rates;
 let log;
+let amqpConnection;
+let publisherChannel;
 
 //call to initialize the exchange service
 export async function init() {
@@ -13,6 +16,36 @@ export async function init() {
   accounts = stateAccounts();
   rates = stateRates();
   log = stateLog();
+
+  // Initialize RabbitMQ publisher (idempotent)
+  if (!amqpConnection) {
+    const RABBIT_USER = process.env.RABBIT_USER || "guest";
+    const RABBIT_PASS = process.env.RABBIT_PASS || "guest";
+    const RABBIT_HOST = process.env.RABBIT_HOST || "rabbitmq";
+    const RABBIT_PORT = process.env.RABBIT_PORT || 5672;
+    const RABBIT_URL = process.env.RABBIT_URL || `amqp://${RABBIT_USER}:${RABBIT_PASS}@${RABBIT_HOST}:${RABBIT_PORT}`;
+
+    amqpConnection = amqpConnect([RABBIT_URL], {
+      heartbeatIntervalInSeconds: 5,
+      reconnectTimeInSeconds: 2,
+    });
+
+    amqpConnection.on("connect", () =>
+      console.log(`RabbitMQ publisher connected: ${RABBIT_URL}`)
+    );
+    amqpConnection.on("disconnect", (params) =>
+      console.warn(
+        `RabbitMQ publisher disconnected: ${params?.err?.message || "unknown error"}`
+      )
+    );
+
+    publisherChannel = amqpConnection.createChannel({
+      json: false,
+      setup: async (channel) => {
+        await channel.assertQueue("TransactionRequest", { durable: true });
+      },
+    });
+  }
 }
 
 //returns all internal accounts
@@ -39,7 +72,6 @@ export function getLog() {
   return log;
 }
 
-//sets the exchange rate for a given pair of currencies, and the reciprocal rate as well
 export function setRate(rateRequest) {
   const { baseCurrency, counterCurrency, rate } = rateRequest;
 
@@ -47,70 +79,45 @@ export function setRate(rateRequest) {
   rates[counterCurrency][baseCurrency] = Number((1 / rate).toFixed(5));
 }
 
-//executes an exchange operation
 export async function exchange(exchangeRequest) {
-  const {
-    baseCurrency,
-    counterCurrency,
-    baseAccountId: clientBaseAccountId,
-    counterAccountId: clientCounterAccountId,
-    baseAmount,
-  } = exchangeRequest;
-
-  //get the exchange rate
-  const exchangeRate = rates[baseCurrency][counterCurrency];
-  //compute the requested (counter) amount
-  const counterAmount = baseAmount * exchangeRate;
-  //find our account on the provided (base) currency
-  const baseAccount = findAccountByCurrency(baseCurrency);
-  //find our account on the counter currency
-  const counterAccount = findAccountByCurrency(counterCurrency);
-
-  //construct the result object with defaults
-  const exchangeResult = {
-    id: nanoid(),
-    ts: new Date(),
-    ok: false,
-    request: exchangeRequest,
-    exchangeRate: exchangeRate,
-    counterAmount: 0.0,
-    obs: null,
+  const requestId = nanoid();
+  const message = {
+    id: requestId,
+    ts: new Date().toISOString(),
+    ...exchangeRequest,
   };
 
-  //check if we have funds on the counter currency account  // DEBERIA TENER TODA UNA UNIFICACION DE TRANSACCION
-  if (counterAccount.balance >= counterAmount) {
-    //try to transfer from clients' base account
-    if (await transfer(clientBaseAccountId, baseAccount.id, baseAmount)) {
-      //try to transfer to clients' counter account
-      if (
-        await transfer(counterAccount.id, clientCounterAccountId, counterAmount)
-      ) {
-        //all good, update balances
-        baseAccount.balance += baseAmount;
-        counterAccount.balance -= counterAmount;
-        exchangeResult.ok = true;
-        exchangeResult.counterAmount = counterAmount;
-      } else {
-        //could not transfer to clients' counter account, return base amount to client
-        await transfer(baseAccount.id, clientBaseAccountId, baseAmount);
-        exchangeResult.obs = "Could not transfer to clients' account";
-      }
-    } else {
-      //could not withdraw from clients' account
-      exchangeResult.obs = "Could not withdraw from clients' account";
-    }
-  } else {
-    //not enough funds on internal counter account
-    exchangeResult.obs = "Not enough funds on counter currency account";
+  try {
+    await publisherChannel.sendToQueue(
+      "TransactionRequest",
+      Buffer.from(JSON.stringify(message)),
+      { persistent: true, contentType: "application/json" }
+    );
+
+    const queuedResult = {
+      id: requestId,
+      ts: new Date(),
+      ok: true,
+      request: exchangeRequest,
+      queued: true,
+    };
+    log.push(queuedResult);
+    return queuedResult;
+  } catch (e) {
+    const errorResult = {
+      id: requestId,
+      ts: new Date(),
+      ok: false,
+      request: exchangeRequest,
+      obs: `Failed to enqueue TransactionRequest: ${e?.message || e}`,
+    };
+    log.push(errorResult);
+    return errorResult;
   }
-
-  //log the transaction and return it
-  log.push(exchangeResult);
-
-  return exchangeResult;
 }
 
 // internal - call transfer service to execute transfer between accounts
+// legacy helper no longer used; kept for potential future use
 async function transfer(fromAccountId, toAccountId, amount) {
   const min = 200;
   const max = 400;
