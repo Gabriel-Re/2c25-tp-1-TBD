@@ -1,0 +1,83 @@
+config:
+  environments:
+    api:
+      target: "http://localhost:5555"
+      plugins:
+        statsd:
+          host: "localhost"
+          port: 8125
+          prefix: "artillery-api"
+
+  # cant max de sockets abiertos por artillery
+  pool: 50
+
+  # timeouts en ms para ver degradación
+  http:
+    timeout: 10000
+
+  phases:
+    - name: Warmup
+      duration: 60
+      arrivalRate: 25
+
+    # 2) Se sube gradualmente a 150 rps
+    - name: Ramp to 150
+      duration: 120
+      arrivalRate: 25
+      rampTo: 150
+
+    # 3) Se mantiene a 150 rps
+    - name: Hold 150
+      duration: 120
+      arrivalRate: 150
+
+    # 4) Volvemos a subir gradualmente a 300 rps
+    - name: Ramp to 300
+      duration: 120
+      arrivalRate: 150
+      rampTo: 300
+
+    # 5) Se mantiene a 300 rps (Ver si empieza a haber problemas a partir de este stress)
+    - name: Hold 300
+      duration: 120
+      arrivalRate: 300
+
+    # 6) Volvemos a subir pero esta vez a 500 rps
+    - name: Ramp to 500
+      duration: 90
+      arrivalRate: 300
+      rampTo: 500
+
+    # 7) Mantenemos finalmente a 500 rps
+    - name: Hold 500
+      duration: 90
+      arrivalRate: 500
+
+scenarios:
+  # Mantenemos lo mismo que en loadtest
+  - name: Exchange (ARS->USD)
+    weight: 70
+    flow:
+      - post:
+          url: "/exchange"
+          json:
+            baseCurrency: "ARS"
+            counterCurrency: "USD"
+            baseAccountId: 1
+            counterAccountId: 2
+            baseAmount: 1000
+      - think: 0.05
+
+  - name: Rates
+    weight: 20
+    flow:
+      - get:
+          url: "/rates"
+      - think: 0.02
+
+  - name: Log
+    weight: 10
+    flow:
+      - get:
+          url: "/log"
+      - think: 0.02
