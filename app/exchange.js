@@ -1,10 +1,28 @@
 import { nanoid } from "nanoid";
+import dgram from "dgram";
 
 import { init as stateInit, getAccounts as stateAccounts, getRates as stateRates, getLog as stateLog } from "./state.js";
 
 let accounts;
 let rates;
 let log;
+
+// socket udp reutilizable para enviar metricas a statsd
+let statsdSocket = null;
+function getStatsdSocket() {
+  try {
+    if (!statsdSocket) {
+      const socket = dgram.createSocket("udp4");
+      if (typeof socket.unref === "function") {
+        socket.unref();
+      }
+      statsdSocket = socket;
+    }
+  } catch (_) {
+    statsdSocket = null;
+  }
+  return statsdSocket;
+}
 
 //call to initialize the exchange service
 export async function init() {
@@ -90,6 +108,14 @@ export async function exchange(exchangeRequest) {
         counterAccount.balance -= counterAmount;
         exchangeResult.ok = true;
         exchangeResult.counterAmount = counterAmount;
+
+        // Emite métricas de volumen por moneda (compras + ventas) evita el doble conteo
+        if (baseCurrency === counterCurrency) {
+          emitVolumeMetric(baseCurrency, baseAmount);
+        } else {
+          emitVolumeMetric(baseCurrency, baseAmount);
+          emitVolumeMetric(counterCurrency, counterAmount);
+        }
       } else {
         //could not transfer to clients' counter account, return base amount to client
         await transfer(baseAccount.id, clientBaseAccountId, baseAmount);
@@ -137,4 +163,26 @@ function findAccountById(id) {
   }
 
   return null;
+}
+
+//Envio los datos de statsd a graphite
+function emitVolumeMetric(currency, amount) {
+  try {
+    const statsdHost = "graphite";
+    const statsdPort = 8125;
+
+    // Formato del contador StatsD: <nombre_métrico>:<valor>
+    const metricName = `exchange.volume.${currency}`;
+    const value = Number(amount);
+    if (!Number.isFinite(value) || value <= 0) {
+      return;
+    }
+
+    const message = Buffer.from(`${metricName}:${value}|c`);
+    const socket = getStatsdSocket();
+    if (!socket) return;
+    socket.send(message, 0, message.length, statsdPort, statsdHost);
+  } catch (err) {
+    // Error en la metrica, ver como handlear esto
+  }
 }
