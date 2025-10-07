@@ -81,9 +81,11 @@ export function setRate(rateRequest) {
 
 export async function exchange(exchangeRequest) {
   const requestId = nanoid();
+  console.log(`[API] Exchange request: ${exchangeRequest}`);
   const message = {
     id: requestId,
     ts: new Date().toISOString(),
+    priority: 1,
     ...exchangeRequest,
   };
 
@@ -98,6 +100,7 @@ export async function exchange(exchangeRequest) {
       id: requestId,
       ts: new Date(),
       ok: true,
+      priority: 1,
       request: exchangeRequest,
       queued: true,
     };
@@ -117,7 +120,6 @@ export async function exchange(exchangeRequest) {
 }
 
 // internal - call transfer service to execute transfer between accounts
-// legacy helper no longer used; kept for potential future use
 async function transfer(fromAccountId, toAccountId, amount) {
   const min = 200;
   const max = 400;

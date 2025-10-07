@@ -1,0 +1,17 @@
+{
+  "name": "exchange-consumer-service",
+  "version": "1.0.0",
+  "description": "Consumes TransactionRequest and publishes TransactionResponse",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "amqp-connection-manager": "^4.1.14",
+    "amqplib": "^0.10.3",
+    "express": "^4.21.2"
+  }
+}
+
+
