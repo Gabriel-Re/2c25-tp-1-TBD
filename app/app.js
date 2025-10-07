@@ -1,4 +1,5 @@
 import express from "express";
+import { connect as amqpConnect } from "amqp-connection-manager";
 
 import {
   init as exchangeInit,
@@ -11,6 +12,51 @@ import {
 } from "./exchange.js";
 
 await exchangeInit();
+
+// RabbitMQ basic connection on startup (non-fatal if it fails)
+const RABBIT_USER = process.env.RABBIT_USER || "guest";
+const RABBIT_PASS = process.env.RABBIT_PASS || "guest";
+const RABBIT_HOST = process.env.RABBIT_HOST || "rabbitmq";
+const RABBIT_PORT = process.env.RABBIT_PORT || 5672;
+const RABBIT_URL = process.env.RABBIT_URL || `amqp://${RABBIT_USER}:${RABBIT_PASS}@${RABBIT_HOST}:${RABBIT_PORT}`;
+
+console.log(`Attempting to connect to RabbitMQ at ${RABBIT_URL}`);
+const amqpConnection = amqpConnect([RABBIT_URL], {
+  heartbeatIntervalInSeconds: 5,
+  reconnectTimeInSeconds: 2,
+});
+
+amqpConnection.on("connect", () =>
+  console.log(`RabbitMQ connected: ${RABBIT_URL}`)
+);
+amqpConnection.on("disconnect", (params) =>
+  console.warn(
+    `RabbitMQ disconnected: ${params?.err?.message || "unknown error"}`
+  )
+);
+
+const channelWrapper = amqpConnection.createChannel({
+  json: false,
+  setup: async (channel) => {
+    await channel.assertQueue("TransactionResponse", { durable: true });
+    await channel.prefetch(10);
+    await channel.consume(
+      "TransactionResponse",
+      (msg) => {
+        if (!msg) return;
+        try {
+          const content = msg.content?.toString?.() ?? "";
+          console.log(`TransactionResponse received: ${content}`);
+          channel.ack(msg);
+        } catch (e) {
+          console.warn(`Error processing message: ${e?.message || e}`);
+          channel.nack(msg, false, false);
+        }
+      },
+      { noAck: false }
+    );
+  },
+});
 
 const app = express();
 const port = 3000;
