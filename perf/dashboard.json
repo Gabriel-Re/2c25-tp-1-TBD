@@ -270,6 +270,60 @@
       }
     },
     {
+      "type": "graph",
+      "title": "BRL Volume over time",
+      "datasource": "Graphite",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 77 },
+      "lines": true,
+      "points": true,
+      "stack": false,
+      "fieldConfig": { "defaults": { "custom": {} }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "target": "alias(sumSeries(stats_counts.arvault.brl.volume.total), 'BRL Total por intervalo')" }
+      ],
+      "tooltip": { "shared": true },
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "hideEmpty": true,
+        "max": true,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "sideWidth": 250,
+        "total": false,
+        "values": true
+      }
+    },
+    {
+      "type": "graph",
+      "title": "BRL Net over time",
+      "datasource": "Graphite",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 84 },
+      "lines": true,
+      "points": true,
+      "stack": false,
+      "fieldConfig": { "defaults": { "custom": {} }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "target": "alias(sumSeries(stats_counts.arvault.brl.volume.net), 'BRL Net por intervalo')" }
+      ],
+      "tooltip": { "shared": true },
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "hideEmpty": true,
+        "max": true,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "sideWidth": 250,
+        "total": false,
+        "values": true
+      }
+    },
+    {
       "aliasColors": {
         "Completed": "#7EB26D",
         "Errored": "#BF1B00",
