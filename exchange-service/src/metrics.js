@@ -32,6 +32,18 @@ export function recordEurMetrics(amountEur, type) {
   statsdClient.increment(netMetric, netDelta);
 }
 
+export function recordArsMetrics(amountArs, type) {
+  // compra o venta de ARS
+  if (!Number.isFinite(amountArs) || amountArs <= 0) return;
+  const totalMetric = "ars.volume.total";
+  const netMetric = "ars.volume.net";
+  const netDelta = type === "buy" ? amountArs : -amountArs;
+
+  // Los contadores 
+  statsdClient.increment(totalMetric, amountArs);
+  statsdClient.increment(netMetric, netDelta);
+}
+
 export function closeMetrics() {
   try {
     statsdClient.close();

@@ -42,6 +42,7 @@ export async function init() {
 
     publisherChannel = amqpConnection.createChannel({
       json: false,
+      confirm: false,
       setup: async (channel) => {
         await channel.assertQueue("TransactionRequest", { durable: true });
       },
@@ -91,7 +92,7 @@ export async function exchange(exchangeRequest) {
   };
 
   try {
-    await publisherChannel.sendToQueue(
+    publisherChannel.sendToQueue(
       "TransactionRequest",
       Buffer.from(JSON.stringify(message)),
       { persistent: true, contentType: "application/json" }
