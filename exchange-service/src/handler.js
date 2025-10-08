@@ -1,4 +1,5 @@
 import { getRate } from "./rates.js";
+import { recordUsdMetrics } from "./metrics.js";
 
 export async function handleTransactionRequest(request, rates) {
   const clientBaseAccountId = Number(request?.baseAccountId);
@@ -34,15 +35,24 @@ export async function handleTransactionRequest(request, rates) {
         counterAccount.balance -= counterAmount;
         exchangeResult.ok = true;
         exchangeResult.counterAmount = counterAmount;
+        // Registramos las métricas de USD, proximamnete extiendo a demas monedas
+        if (request.baseCurrency === "USD") {
+          // Venta de USD, el volumen en USD es baseAmount
+          recordUsdMetrics(baseAmount, "sell");
+        }
+        if (request.counterCurrency === "USD") {
+          // Compra de USD, el volumen en USD es counterAmount
+          recordUsdMetrics(counterAmount, "buy");
+        }
       } else {
         await transfer(baseAccount.id, clientBaseAccountId, baseAmount);
-        exchangeResult.obs = "Could not transfer to clients' account";
+        exchangeResult.obs = "No se pudo transferir a la cuenta del cliente";
       }
     } else {
-      exchangeResult.obs = "Could not withdraw from clients' account";
+      exchangeResult.obs = "No se pudo debitar de la cuenta del cliente";
     }
   } else {
-    exchangeResult.obs = "Not enough funds on counter currency account";
+    exchangeResult.obs = "Fondos insuficientes en la cuenta de la moneda destino";
   }
 
   return exchangeResult;

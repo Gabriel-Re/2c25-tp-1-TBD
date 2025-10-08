@@ -10,7 +10,8 @@
   "dependencies": {
     "amqp-connection-manager": "^4.1.14",
     "amqplib": "^0.10.3",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "hot-shots": "^10.1.1"
   }
 }
 

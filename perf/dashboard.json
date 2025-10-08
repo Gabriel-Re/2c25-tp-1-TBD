@@ -121,6 +121,58 @@
       }
     },
     {
+      "type": "graph",
+      "title": "USD Volume over time",
+      "datasource": "Graphite",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 35 },
+      "lines": true,
+      "points": true,
+      "stack": false,
+      "fieldConfig": { "defaults": { "custom": {} }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "target": "alias(sumSeries(stats_counts.arvault.usd.volume.total), 'USD Total per bucket')" },
+        { "refId": "B", "target": "alias(sumSeries(stats_counts.arvault.usd.volume.net), 'USD Net per bucket')" }
+      ],
+      "tooltip": { "shared": true }
+    },
+    {
+      "type": "stat",
+      "title": "USD Total (current)",
+      "datasource": "Graphite",
+      "gridPos": { "h": 4, "w": 12, "x": 0, "y": 42 },
+      "targets": [ { "refId": "A", "target": "alias(keepLastValue(sumSeries(stats_counts.arvault.usd.volume.total)), 'USD Total')" } ]
+    },
+    {
+      "type": "stat",
+      "title": "USD Net (current)",
+      "datasource": "Graphite",
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 42 },
+      "targets": [ { "refId": "A", "target": "alias(keepLastValue(sumSeries(stats_counts.arvault.usd.volume.net)), 'USD Net')" } ]
+    },
+    {
+      "type": "table",
+      "title": "USD Volume (Total & Net)",
+      "datasource": "Graphite",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 28 },
+      "pluginVersion": "7.3.10",
+      "fieldConfig": { "defaults": { "custom": {} }, "overrides": [] },
+      "options": { "showHeader": true },
+      "targets": [
+        { "refId": "A", "target": "alias(keepLastValue(sumSeries(stats_counts.arvault.usd.volume.total)), 'USD Total')" },
+        { "refId": "B", "target": "alias(keepLastValue(sumSeries(stats_counts.arvault.usd.volume.net)), 'USD Net')" }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          }
+        }
+      ]
+    },
+    {
       "aliasColors": {
         "Completed": "#7EB26D",
         "Errored": "#BF1B00",
