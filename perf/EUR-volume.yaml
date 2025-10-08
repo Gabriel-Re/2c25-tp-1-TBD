@@ -1,4 +1,4 @@
-# perf/usd-volume.basic.yaml
+# perf/eur-volume.basic.yaml
 config:
   environments:
     api:
@@ -26,31 +26,31 @@ config:
       arrivalRate: 20
 
 scenarios:
-  - name: Exchange ARS->USD
+  - name: Exchange ARS->EUR
     weight: 70
     flow:
       - post:
           url: "/exchange"
           json:
             baseCurrency: "ARS"
-            counterCurrency: "USD"
+            counterCurrency: "EUR"
             baseAccountId: 1
             counterAccountId: 2
-            baseAmount: 1000   
+            baseAmount: 2000   
           expect:
             - statusCode: 200
 
-  - name: Exchange USD->ARS
+  - name: Exchange EUR->ARS
     weight: 30
     flow:
       - post:
           url: "/exchange"
           json:
-            baseCurrency: "USD"
+            baseCurrency: "EUR"
             counterCurrency: "ARS"
             baseAccountId: 1
             counterAccountId: 2
-            baseAmount: 5      # Genera volumen desde el lado USD base
+            baseAmount: 10      # Genera volumen desde el lado EUR base
           expect:
             - statusCode: 200
 
