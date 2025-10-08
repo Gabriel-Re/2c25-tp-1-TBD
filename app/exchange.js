@@ -10,23 +10,6 @@ let log;
 let amqpConnection;
 let publisherChannel;
 
-// socket udp reutilizable para enviar metricas a statsd
-let statsdSocket = null;
-function getStatsdSocket() {
-  try {
-    if (!statsdSocket) {
-      const socket = dgram.createSocket("udp4");
-      if (typeof socket.unref === "function") {
-        socket.unref();
-      }
-      statsdSocket = socket;
-    }
-  } catch (_) {
-    statsdSocket = null;
-  }
-  return statsdSocket;
-}
-
 //call to initialize the exchange service
 export async function init() {
   await stateInit();
@@ -166,24 +149,3 @@ function findAccountById(id) {
   return null;
 }
 
-//Envio los datos de statsd a graphite
-function emitVolumeMetric(currency, amount) {
-  try {
-    const statsdHost = "graphite";
-    const statsdPort = 8125;
-
-    // Formato del contador StatsD: <nombre_métrico>:<valor>
-    const metricName = `exchange.volume.${currency}`;
-    const value = Number(amount);
-    if (!Number.isFinite(value) || value <= 0) {
-      return;
-    }
-
-    const message = Buffer.from(`${metricName}:${value}|c`);
-    const socket = getStatsdSocket();
-    if (!socket) return;
-    socket.send(message, 0, message.length, statsdPort, statsdHost);
-  } catch (err) {
-    // Error en la metrica, ver como handlear esto
-  }
-}
