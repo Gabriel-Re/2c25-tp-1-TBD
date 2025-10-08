@@ -46,13 +46,13 @@ export async function handleTransactionRequest(request, rates) {
         }
       } else {
         await transfer(baseAccount.id, clientBaseAccountId, baseAmount);
-        exchangeResult.obs = "No se pudo transferir a la cuenta del cliente";
+        exchangeResult.obs = "Could not transfer to clients' account";
       }
     } else {
-      exchangeResult.obs = "No se pudo debitar de la cuenta del cliente";
+      exchangeResult.obs = "Could not withdraw from clients' account";
     }
   } else {
-    exchangeResult.obs = "Fondos insuficientes en la cuenta de la moneda destino";
+    exchangeResult.obs = "Not enough funds on counter currency account";
   }
 
   return exchangeResult;
