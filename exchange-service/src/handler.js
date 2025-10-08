@@ -1,5 +1,5 @@
 import { getRate } from "./rates.js";
-import { recordUsdMetrics } from "./metrics.js";
+import { recordUsdMetrics, recordEurMetrics } from "./metrics.js";
 
 export async function handleTransactionRequest(request, rates) {
   const clientBaseAccountId = Number(request?.baseAccountId);
@@ -35,7 +35,7 @@ export async function handleTransactionRequest(request, rates) {
         counterAccount.balance -= counterAmount;
         exchangeResult.ok = true;
         exchangeResult.counterAmount = counterAmount;
-        // Registramos las métricas de USD, proximamnete extiendo a demas monedas
+        // Registramos las métricas de USD y EUR
         if (request.baseCurrency === "USD") {
           // Venta de USD, el volumen en USD es baseAmount
           recordUsdMetrics(baseAmount, "sell");
@@ -43,6 +43,14 @@ export async function handleTransactionRequest(request, rates) {
         if (request.counterCurrency === "USD") {
           // Compra de USD, el volumen en USD es counterAmount
           recordUsdMetrics(counterAmount, "buy");
+        }
+        if (request.baseCurrency === "EUR") {
+          // Venta de EUR, el volumen en EUR es baseAmount
+          recordEurMetrics(baseAmount, "sell");
+        }
+        if (request.counterCurrency === "EUR") {
+          // Compra de EUR, el volumen en EUR es counterAmount
+          recordEurMetrics(counterAmount, "buy");
         }
       } else {
         await transfer(baseAccount.id, clientBaseAccountId, baseAmount);

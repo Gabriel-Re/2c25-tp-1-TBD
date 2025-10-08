@@ -20,6 +20,18 @@ export function recordUsdMetrics(amountUsd, type) {
   statsdClient.increment(netMetric, netDelta);
 }
 
+export function recordEurMetrics(amountEur, type) {
+  // compra o venta de EUR
+  if (!Number.isFinite(amountEur) || amountEur <= 0) return;
+  const totalMetric = "eur.volume.total";
+  const netMetric = "eur.volume.net";
+  const netDelta = type === "buy" ? amountEur : -amountEur;
+
+  // Los contadores 
+  statsdClient.increment(totalMetric, amountEur);
+  statsdClient.increment(netMetric, netDelta);
+}
+
 export function closeMetrics() {
   try {
     statsdClient.close();
