@@ -132,7 +132,20 @@
       "targets": [
         { "refId": "A", "target": "alias(sumSeries(stats_counts.arvault.usd.volume.total), 'USD Total por intervalo')" }
       ],
-      "tooltip": { "shared": true }
+      "tooltip": { "shared": true },
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "hideEmpty": true,
+        "max": true,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "sideWidth": 250,
+        "total": false,
+        "values": true
+      }
     },
     {
       "type": "graph",
