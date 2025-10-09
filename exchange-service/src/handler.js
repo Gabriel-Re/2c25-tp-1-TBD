@@ -1,5 +1,5 @@
 import { getRate } from "./rates.js";
-import { recordUsdMetrics, recordEurMetrics, recordArsMetrics, recordBrlMetrics } from "./metrics.js";
+import { recordMetrics } from "./metrics.js";
 
 export async function handleTransactionRequest(request, rates) {
   const clientBaseAccountId = Number(request?.baseAccountId);
@@ -35,39 +35,12 @@ export async function handleTransactionRequest(request, rates) {
         counterAccount.balance -= counterAmount;
         exchangeResult.ok = true;
         exchangeResult.counterAmount = counterAmount;
-        // Registramos las métricas de USD, EUR, ARS y BRL
-        if (request.baseCurrency === "USD") {
-          // Venta de USD, el volumen en USD es baseAmount
-          recordUsdMetrics(baseAmount, "sell");
-        }
-        if (request.counterCurrency === "USD") {
-          // Compra de USD, el volumen en USD es counterAmount
-          recordUsdMetrics(counterAmount, "buy");
-        }
-        if (request.baseCurrency === "EUR") {
-          // Venta de EUR, el volumen en EUR es baseAmount
-          recordEurMetrics(baseAmount, "sell");
-        }
-        if (request.counterCurrency === "EUR") {
-          // Compra de EUR, el volumen en EUR es counterAmount
-          recordEurMetrics(counterAmount, "buy");
-        }
-        if (request.baseCurrency === "ARS") {
-          // Venta de ARS, el volumen en ARS es baseAmount
-          recordArsMetrics(baseAmount, "sell");
-        }
-        if (request.counterCurrency === "ARS") {
-          // Compra de ARS, el volumen en ARS es counterAmount
-          recordArsMetrics(counterAmount, "buy");
-        }
-        if (request.baseCurrency === "BRL") {
-          // Venta de BRL, el volumen en BRL es baseAmount
-          recordBrlMetrics(baseAmount, "sell");
-        }
-        if (request.counterCurrency === "BRL") {
-          // Compra de BRL, el volumen en BRL es counterAmount
-          recordBrlMetrics(counterAmount, "buy");
-        }
+        // Metricas para las monedas
+        // Venta de moneda (base)
+        recordMetrics(request.baseCurrency, baseAmount, "sell");
+        
+        // Compra de moneda (destino) 
+        recordMetrics(request.counterCurrency, counterAmount, "buy");
       } else {
         await transfer(baseAccount.id, clientBaseAccountId, baseAmount);
         exchangeResult.obs = "Could not transfer to clients' account";
